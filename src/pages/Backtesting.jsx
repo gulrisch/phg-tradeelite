@@ -143,6 +143,7 @@ export default function Backtesting(){
   const [loading,setLoading]=useState(false)
   const [tab,setTab]=useState('compare')
   const [showPairs,setShowPairs]=useState(false)
+  const [period,setPeriod]=useState(500)
   const [error,setError]=useState(null)
   const [whLog,setWhLog]=useState([])
   const [importTxt,setImportTxt]=useState('')
@@ -157,7 +158,7 @@ export default function Backtesting(){
 
   const fetchCandles=async()=>{
     if(mode==='demo')return genDemo(300)
-    const res=await fetch(`https://api.binance.com/api/v3/klines?symbol=${cfg.pair}&interval=${cfg.tf}&limit=500`)
+    const res=await fetch(`https://api.binance.com/api/v3/klines?symbol=${cfg.pair}&interval=${cfg.tf}&limit=${period}`)
     if(!res.ok)throw new Error('Erreur Binance API')
     return(await res.json()).map(k=>({time:k[0],open:parseFloat(k[1]),high:parseFloat(k[2]),low:parseFloat(k[3]),close:parseFloat(k[4])}))
   }
@@ -325,7 +326,19 @@ export default function Backtesting(){
             </div>
           </div>}
 
-          <Slider label="Capital ($)" k="capital" min={1000} max={100000} step={1000}/>
+          <div style={{marginBottom:'10px',background:'#0a140a',border:'1px solid #1a3a1a',borderRadius:'8px',padding:'9px 10px'}}>
+          <div style={{display:'flex',justifyContent:'space-between',marginBottom:'6px'}}>
+            <div style={{fontSize:'10px',color:'#5a7a5a',fontWeight:'700'}}>PERIODE (BOUGIES)</div>
+            <div style={{fontSize:'11px',color:'#c9a227',fontWeight:'700'}}>{period}</div>
+          </div>
+          <div style={{display:'flex',gap:'3px',marginBottom:'6px'}}>
+            {[100,200,500,1000,1500].map(p=>(
+              <button key={p} onClick={()=>setPeriod(p)} style={{flex:1,background:period===p?'#1a3a0a':'#0a120a',border:`1px solid ${period===p?'#c9a227':'#1a2e1a'}`,color:period===p?'#c9a227':'#5a7a5a',padding:'5px 2px',borderRadius:'5px',cursor:'pointer',fontSize:'10px',fontFamily:'inherit',fontWeight:'700'}}>{p}</button>
+            ))}
+          </div>
+          <input type="range" min={50} max={1500} step={50} value={period} onChange={e=>setPeriod(parseInt(e.target.value))} style={{width:'100%',accentColor:'#c9a227',cursor:'pointer'}}/>
+        </div>
+        <Slider label="Capital ($)" k="capital" min={1000} max={100000} step={1000}/>
           <Slider label="Risque/trade (%)" k="risk_pct" min={0.5} max={5} step={0.5}/>
           <Slider label="Stop Loss (pips)" k="sl_pips" min={10} max={200} step={10}/>
           <Slider label="Risk/Reward" k="rr" min={1} max={5} step={0.5}/>
