@@ -1,0 +1,10 @@
+﻿@import "tailwindcss";
+
+:root {
+  --gold: #c9a227;
+  --bg-primary: #060d06;
+  --bg-secondary: #0d1a0d;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background-color: #060d06; color: #e0e0e0; font-family: sans-serif; }
