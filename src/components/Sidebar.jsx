@@ -8,6 +8,7 @@ const nav = [
   { path: '/evolution', icon: TrendingUp, label: 'Auto Evolution' },
   { path: '/ftmo', icon: Target, label: 'FTMO Challenge' },
   { path: '/chart', icon: BarChart2, label: 'Trading Chart' },
+  { path: '/backtest', icon: BarChart2, label: 'Backtesting' },
 ]
 
 function HorusEye() {

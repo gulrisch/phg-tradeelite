@@ -6,6 +6,7 @@ import SignalSimulator from './pages/SignalSimulator'
 import FTMOChallenge from './pages/FTMOChallenge'
 import AutoEvolution from './pages/AutoEvolution'
 import TradingChart from './pages/TradingChart'
+import Backtesting from './pages/Backtesting'
 import './index.css'
 
 export default function App() {
@@ -21,6 +22,7 @@ export default function App() {
             <Route path="/ftmo" element={<FTMOChallenge />} />
             <Route path="/evolution" element={<AutoEvolution />} />
             <Route path="/chart" element={<TradingChart />} />
+            <Route path="/backtest" element={<Backtesting />} />
           </Routes>
         </main>
       </div>
