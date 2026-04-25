@@ -1,5 +1,5 @@
 ﻿import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, BookOpen, Activity, Target, TrendingUp } from 'lucide-react'
+import { LayoutDashboard, BookOpen, Activity, Target, TrendingUp, BarChart2 } from 'lucide-react'
 
 const nav = [
   { path: '/', icon: LayoutDashboard, label: 'Dashboard' },
@@ -7,6 +7,7 @@ const nav = [
   { path: '/signals', icon: Activity, label: 'Signal Simulator' },
   { path: '/evolution', icon: TrendingUp, label: 'Auto Evolution' },
   { path: '/ftmo', icon: Target, label: 'FTMO Challenge' },
+  { path: '/chart', icon: BarChart2, label: 'Trading Chart' },
 ]
 
 function HorusEye() {

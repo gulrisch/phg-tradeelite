@@ -1,0 +1,319 @@
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { RefreshCw, TrendingUp, TrendingDown, Activity, ChevronDown } from 'lucide-react'
+
+const PAIRS = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'XRPUSDT', 'DOGEUSDT', 'LTCUSDT', 'ADAUSDT']
+const TIMEFRAMES = [
+  { label: '1m', value: '1m' },
+  { label: '5m', value: '5m' },
+  { label: '15m', value: '15m' },
+  { label: '1h', value: '1h' },
+  { label: '4h', value: '4h' },
+  { label: '1j', value: '1d' },
+]
+const INDICATORS = ['EMA', 'FVG', 'BOS', 'OB', 'CHoCH']
+
+function calcEMA(candles, period) {
+  const k = 2 / (period + 1)
+  let ema = candles[0].close
+  return candles.map(c => { ema = c.close * k + ema * (1 - k); return ema })
+}
+
+function detectFVG(candles) {
+  const fvgs = []
+  for (let i = 1; i < candles.length - 1; i++) {
+    const prev = candles[i - 1], next = candles[i + 1]
+    if (next.low > prev.high) fvgs.push({ type: 'bull', top: next.low, bottom: prev.high, index: i })
+    if (next.high < prev.low) fvgs.push({ type: 'bear', top: prev.low, bottom: next.high, index: i })
+  }
+  return fvgs
+}
+
+function detectBOS(candles) {
+  const result = [], lb = 8
+  for (let i = lb; i < candles.length; i++) {
+    const window = candles.slice(i - lb, i)
+    const swingHigh = Math.max(...window.map(c => c.high))
+    const swingLow = Math.min(...window.map(c => c.low))
+    if (candles[i].close > swingHigh && (result.length === 0 || result[result.length - 1].index < i - 3))
+      result.push({ type: 'bull', price: swingHigh, index: i })
+    if (candles[i].close < swingLow && (result.length === 0 || result[result.length - 1].index < i - 3))
+      result.push({ type: 'bear', price: swingLow, index: i })
+  }
+  return result.slice(-6)
+}
+
+function detectCHoCH(candles) {
+  const result = []; let lastDir = null
+  for (let i = 5; i < candles.length; i++) {
+    const slice = candles.slice(i - 5, i)
+    const isUp = candles[i].close > Math.max(...slice.map(c => c.high))
+    const isDown = candles[i].close < Math.min(...slice.map(c => c.low))
+    if (isUp && lastDir === 'bear') { result.push({ type: 'bull', price: candles[i].close, index: i }); lastDir = 'bull' }
+    else if (isDown && lastDir === 'bull') { result.push({ type: 'bear', price: candles[i].close, index: i }); lastDir = 'bear' }
+    else if (!lastDir) lastDir = candles[i].close > candles[i].open ? 'bull' : 'bear'
+  }
+  return result.slice(-4)
+}
+
+function detectOrderBlocks(candles) {
+  const obs = []
+  for (let i = 2; i < candles.length - 2; i++) {
+    const c = candles[i], n1 = candles[i + 1], n2 = candles[i + 2]
+    const bullMove = (n1.close - n1.open) / n1.open > 0.003 && (n2.close - n2.open) / n2.open > 0.001
+    const bearMove = (n1.open - n1.close) / n1.open > 0.003 && (n2.open - n2.close) / n2.open > 0.001
+    if (c.close < c.open && bullMove) obs.push({ type: 'bull', top: Math.max(c.open, c.close), bottom: Math.min(c.open, c.close), index: i })
+    if (c.close > c.open && bearMove) obs.push({ type: 'bear', top: Math.max(c.open, c.close), bottom: Math.min(c.open, c.close), index: i })
+  }
+  return obs.slice(-6)
+}
+
+function drawChart(canvas, candles, activeIndicators) {
+  if (!canvas || !candles.length) return
+  const ctx = canvas.getContext('2d')
+  const W = canvas.width, H = canvas.height
+  const PAD = { top: 20, right: 80, bottom: 40, left: 10 }
+  const chartW = W - PAD.left - PAD.right
+  const chartH = H - PAD.top - PAD.bottom
+
+  ctx.clearRect(0, 0, W, H)
+  ctx.fillStyle = '#080f08'
+  ctx.fillRect(0, 0, W, H)
+
+  const prices = candles.flatMap(c => [c.high, c.low])
+  const minP = Math.min(...prices) * 0.9995
+  const maxP = Math.max(...prices) * 1.0005
+  const priceRange = maxP - minP
+
+  const toX = (i) => PAD.left + (i / (candles.length - 1)) * chartW
+  const toY = (p) => PAD.top + ((maxP - p) / priceRange) * chartH
+
+  ctx.strokeStyle = '#1a2e1a'; ctx.lineWidth = 0.5
+  for (let i = 0; i <= 5; i++) {
+    const y = PAD.top + (i / 5) * chartH
+    ctx.beginPath(); ctx.moveTo(PAD.left, y); ctx.lineTo(W - PAD.right, y); ctx.stroke()
+    const price = maxP - (i / 5) * priceRange
+    ctx.fillStyle = '#3a5a3a'; ctx.font = '10px Courier New'; ctx.textAlign = 'left'
+    ctx.fillText(price.toFixed(price > 100 ? 1 : 4), W - PAD.right + 4, y + 3)
+  }
+
+  const candleW = Math.max(2, chartW / candles.length - 1)
+
+  if (activeIndicators.includes('OB')) {
+    detectOrderBlocks(candles).forEach(ob => {
+      const x = toX(ob.index), top = toY(ob.top), bot = toY(ob.bottom)
+      ctx.fillStyle = ob.type === 'bull' ? 'rgba(0,204,102,0.12)' : 'rgba(255,68,68,0.12)'
+      ctx.strokeStyle = ob.type === 'bull' ? 'rgba(0,204,102,0.4)' : 'rgba(255,68,68,0.4)'
+      ctx.lineWidth = 1
+      ctx.fillRect(x, top, chartW - x + PAD.left, bot - top)
+      ctx.strokeRect(x, top, chartW - x + PAD.left, bot - top)
+      ctx.fillStyle = ob.type === 'bull' ? '#00cc66' : '#ff4444'
+      ctx.font = 'bold 9px Courier New'
+      ctx.fillText('OB ' + (ob.type === 'bull' ? '▲' : '▼'), x + 2, top - 2)
+    })
+  }
+
+  if (activeIndicators.includes('FVG')) {
+    detectFVG(candles).forEach(fvg => {
+      const x = toX(fvg.index), top = toY(fvg.top), bot = toY(fvg.bottom)
+      ctx.fillStyle = fvg.type === 'bull' ? 'rgba(0,204,102,0.08)' : 'rgba(255,153,0,0.08)'
+      ctx.strokeStyle = fvg.type === 'bull' ? 'rgba(0,204,102,0.3)' : 'rgba(255,153,0,0.3)'
+      ctx.setLineDash([3, 3]); ctx.lineWidth = 1
+      ctx.fillRect(x - candleW, top, chartW - x + PAD.left + candleW, bot - top)
+      ctx.strokeRect(x - candleW, top, chartW - x + PAD.left + candleW, bot - top)
+      ctx.setLineDash([])
+      ctx.fillStyle = fvg.type === 'bull' ? '#00cc66' : '#ff9900'
+      ctx.font = '8px Courier New'
+      ctx.fillText('FVG', x - candleW + 2, top - 2)
+    })
+  }
+
+  candles.forEach((c, i) => {
+    const x = toX(i), open = toY(c.open), close = toY(c.close), high = toY(c.high), low = toY(c.low)
+    const bull = c.close >= c.open, color = bull ? '#00cc66' : '#ff4444'
+    ctx.strokeStyle = color; ctx.lineWidth = 1
+    ctx.beginPath(); ctx.moveTo(x, high); ctx.lineTo(x, low); ctx.stroke()
+    const bodyTop = Math.min(open, close), bodyH = Math.max(1, Math.abs(close - open))
+    ctx.fillStyle = bull ? 'rgba(0,204,102,0.85)' : 'rgba(255,68,68,0.85)'
+    ctx.fillRect(x - candleW / 2, bodyTop, candleW, bodyH)
+  })
+
+  if (activeIndicators.includes('EMA')) {
+    [{ period: 20, color: '#c9a227' }, { period: 50, color: '#00aaff' }, { period: 200, color: '#ff6600' }].forEach(({ period, color }) => {
+      if (candles.length < period) return
+      const emas = calcEMA(candles, period)
+      ctx.strokeStyle = color; ctx.lineWidth = 1.2; ctx.setLineDash([])
+      ctx.beginPath()
+      emas.forEach((e, i) => { const x = toX(i), y = toY(e); i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y) })
+      ctx.stroke()
+      ctx.fillStyle = color; ctx.font = '9px Courier New'
+      ctx.fillText('EMA' + period, W - PAD.right + 4, toY(emas[emas.length - 1]) + 3)
+    })
+  }
+
+  if (activeIndicators.includes('BOS')) {
+    detectBOS(candles).forEach(b => {
+      const y = toY(b.price), x = toX(b.index)
+      ctx.strokeStyle = b.type === 'bull' ? '#00cc66' : '#ff4444'
+      ctx.lineWidth = 1; ctx.setLineDash([5, 3])
+      ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(W - PAD.right, y); ctx.stroke()
+      ctx.setLineDash([])
+      ctx.fillStyle = b.type === 'bull' ? '#00cc66' : '#ff4444'
+      ctx.font = 'bold 9px Courier New'
+      ctx.fillText('BOS ' + (b.type === 'bull' ? '▲' : '▼'), x + 2, y - 2)
+    })
+  }
+
+  if (activeIndicators.includes('CHoCH')) {
+    detectCHoCH(candles).forEach(c => {
+      const y = toY(c.price), x = toX(c.index)
+      ctx.strokeStyle = c.type === 'bull' ? '#00ffaa' : '#ff88aa'
+      ctx.lineWidth = 1.5; ctx.setLineDash([2, 4])
+      ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(W - PAD.right, y); ctx.stroke()
+      ctx.setLineDash([])
+      ctx.fillStyle = c.type === 'bull' ? '#00ffaa' : '#ff88aa'
+      ctx.font = 'bold 9px Courier New'
+      ctx.fillText('CHoCH', x + 2, y - 2)
+    })
+  }
+
+  const lastClose = candles[candles.length - 1].close
+  const lastY = toY(lastClose)
+  ctx.strokeStyle = '#c9a227'; ctx.lineWidth = 1; ctx.setLineDash([2, 2])
+  ctx.beginPath(); ctx.moveTo(PAD.left, lastY); ctx.lineTo(W - PAD.right, lastY); ctx.stroke()
+  ctx.setLineDash([])
+  ctx.fillStyle = '#c9a227'
+  ctx.fillRect(W - PAD.right, lastY - 8, PAD.right - 2, 16)
+  ctx.fillStyle = '#000'; ctx.font = 'bold 9px Courier New'; ctx.textAlign = 'center'
+  ctx.fillText(lastClose.toFixed(lastClose > 100 ? 1 : 4), W - PAD.right / 2, lastY + 3)
+  ctx.textAlign = 'left'
+}
+
+export default function TradingChart() {
+  const [pair, setPair] = useState('BTCUSDT')
+  const [tf, setTf] = useState('1h')
+  const [candles, setCandles] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
+  const [activeIndicators, setActiveIndicators] = useState(['EMA', 'FVG', 'BOS', 'OB'])
+  const [showPairs, setShowPairs] = useState(false)
+  const [stats, setStats] = useState(null)
+  const canvasRef = useRef(null)
+
+  const fetchData = useCallback(async () => {
+    setLoading(true); setError(null)
+    try {
+      const res = await fetch(`https://api.binance.com/api/v3/klines?symbol=${pair}&interval=${tf}&limit=120`)
+      if (!res.ok) throw new Error('Erreur Binance API')
+      const raw = await res.json()
+      const parsed = raw.map(k => ({ time: k[0], open: parseFloat(k[1]), high: parseFloat(k[2]), low: parseFloat(k[3]), close: parseFloat(k[4]), volume: parseFloat(k[5]) }))
+      setCandles(parsed)
+      const first = parsed[0].close, last = parsed[parsed.length - 1].close
+      setStats({ last, change: ((last - first) / first) * 100, high24: Math.max(...parsed.map(c => c.high)), low24: Math.min(...parsed.map(c => c.low)) })
+    } catch (e) { setError(e.message) }
+    setLoading(false)
+  }, [pair, tf])
+
+  useEffect(() => { fetchData() }, [fetchData])
+
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas || !candles.length) return
+    const resize = () => { canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight; drawChart(canvas, candles, activeIndicators) }
+    resize()
+    window.addEventListener('resize', resize)
+    return () => window.removeEventListener('resize', resize)
+  }, [candles, activeIndicators])
+
+  const toggleIndicator = (ind) => setActiveIndicators(prev => prev.includes(ind) ? prev.filter(i => i !== ind) : [...prev, ind])
+  const indicatorColors = { EMA: '#c9a227', FVG: '#00cc66', BOS: '#00aaff', OB: '#ff9900', CHoCH: '#ff88aa' }
+
+  return (
+    <div style={{ padding: '20px', minHeight: '100vh', fontFamily: "'Courier New', monospace" }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <Activity size={20} color="#c9a227" />
+          <div>
+            <div style={{ fontSize: '18px', fontWeight: '700', color: '#e0e0e0', letterSpacing: '1px' }}>PHG TRADING CHART</div>
+            <div style={{ fontSize: '11px', color: '#5a7a5a' }}>ICT Analysis · Binance Live Data</div>
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <div style={{ position: 'relative' }}>
+            <button onClick={() => setShowPairs(!showPairs)} style={{ background: '#0d1a0d', border: '1px solid #c9a227', color: '#c9a227', padding: '7px 14px', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontFamily: 'inherit', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              {pair} <ChevronDown size={12} />
+            </button>
+            {showPairs && (
+              <div style={{ position: 'absolute', top: '36px', left: 0, background: '#0d1a0d', border: '1px solid #1a2e1a', borderRadius: '8px', zIndex: 100, minWidth: '140px' }}>
+                {PAIRS.map(p => (
+                  <div key={p} onClick={() => { setPair(p); setShowPairs(false) }}
+                    style={{ padding: '8px 14px', cursor: 'pointer', color: p === pair ? '#c9a227' : '#e0e0e0', fontSize: '12px', background: p === pair ? '#1a2e0a' : 'none' }}>
+                    {p}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <div style={{ display: 'flex', gap: '4px' }}>
+            {TIMEFRAMES.map(t => (
+              <button key={t.value} onClick={() => setTf(t.value)} style={{ background: tf === t.value ? '#1a2e0a' : '#0d150d', border: `1px solid ${tf === t.value ? '#00cc66' : '#1a2e1a'}`, color: tf === t.value ? '#00cc66' : '#5a7a5a', padding: '6px 10px', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontFamily: 'inherit', fontWeight: '700' }}>
+                {t.label}
+              </button>
+            ))}
+          </div>
+          <button onClick={fetchData} disabled={loading} style={{ background: '#1a2e0a', border: '1px solid #c9a227', color: '#c9a227', padding: '7px 14px', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: '6px', opacity: loading ? 0.6 : 1 }}>
+            <RefreshCw size={13} style={{ animation: loading ? 'spin 1s linear infinite' : 'none' }} />
+            {loading ? '...' : 'Refresh'}
+          </button>
+        </div>
+      </div>
+
+      {stats && (
+        <div style={{ display: 'flex', gap: '12px', marginBottom: '12px', flexWrap: 'wrap' }}>
+          <div style={{ background: '#0d1a0d', border: '1px solid #1a2e1a', borderRadius: '8px', padding: '10px 16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '11px', color: '#5a7a5a' }}>PRIX</span>
+            <span style={{ fontSize: '18px', fontWeight: '700', color: '#e0e0e0' }}>{stats.last > 100 ? stats.last.toFixed(2) : stats.last.toFixed(5)}</span>
+            <span style={{ fontSize: '13px', fontWeight: '700', color: stats.change >= 0 ? '#00cc66' : '#ff4444', display: 'flex', alignItems: 'center', gap: '3px' }}>
+              {stats.change >= 0 ? <TrendingUp size={13} /> : <TrendingDown size={13} />}
+              {stats.change >= 0 ? '+' : ''}{stats.change.toFixed(2)}%
+            </span>
+          </div>
+          {[['HAUT', stats.high24, '#00cc66'], ['BAS', stats.low24, '#ff4444']].map(([label, val, color]) => (
+            <div key={label} style={{ background: '#0d1a0d', border: '1px solid #1a2e1a', borderRadius: '8px', padding: '10px 16px' }}>
+              <div style={{ fontSize: '10px', color: '#5a7a5a', marginBottom: '2px' }}>{label}</div>
+              <div style={{ fontSize: '14px', fontWeight: '700', color }}>{val > 100 ? val.toFixed(2) : val.toFixed(5)}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div style={{ display: 'flex', gap: '6px', marginBottom: '12px', flexWrap: 'wrap' }}>
+        {INDICATORS.map(ind => (
+          <button key={ind} onClick={() => toggleIndicator(ind)} style={{ background: activeIndicators.includes(ind) ? '#0a1a0a' : '#080f08', border: `1px solid ${activeIndicators.includes(ind) ? indicatorColors[ind] : '#1a2e1a'}`, color: activeIndicators.includes(ind) ? indicatorColors[ind] : '#3a4a3a', padding: '4px 12px', borderRadius: '20px', cursor: 'pointer', fontSize: '11px', fontFamily: 'inherit', fontWeight: '700' }}>
+            {ind}
+          </button>
+        ))}
+      </div>
+
+      <div style={{ background: '#080f08', border: '1px solid #1a2e1a', borderRadius: '12px', overflow: 'hidden', height: '460px', position: 'relative' }}>
+        {error && <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ff4444', fontSize: '14px' }}>⚠️ {error}</div>}
+        {loading && !candles.length && (
+          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#5a7a5a', fontSize: '13px', gap: '8px' }}>
+            <RefreshCw size={16} style={{ animation: 'spin 1s linear infinite' }} /> Chargement Binance...
+          </div>
+        )}
+        <canvas ref={canvasRef} style={{ width: '100%', height: '100%', display: 'block' }} />
+      </div>
+
+      <div style={{ display: 'flex', gap: '16px', marginTop: '10px', flexWrap: 'wrap' }}>
+        {[['EMA 20', '#c9a227'], ['EMA 50', '#00aaff'], ['EMA 200', '#ff6600'], ['FVG Bull', '#00cc66'], ['FVG Bear', '#ff9900'], ['BOS', '#00cc66'], ['OB', '#ff9900'], ['CHoCH', '#ff88aa']].map(([label, color]) => (
+          <div key={label} style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+            <div style={{ width: '12px', height: '3px', background: color, borderRadius: '2px' }} />
+            <span style={{ fontSize: '10px', color: '#3a4a3a' }}>{label}</span>
+          </div>
+        ))}
+      </div>
+
+      <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+    </div>
+  )
+}
