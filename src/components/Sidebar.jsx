@@ -1,7 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 import {
   LayoutDashboard, BookOpen, Activity, TrendingUp,
-  Trophy, BarChart2, FlaskConical, Zap
+  Trophy, BarChart2, FlaskConical, Zap, Cpu
 } from "lucide-react";
 
 const nav = [
@@ -67,3 +67,4 @@ export default function Sidebar() {
     </div>
   );
 }
+
