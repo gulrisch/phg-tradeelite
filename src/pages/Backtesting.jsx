@@ -1,12 +1,12 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
+﻿import { useState, useRef, useEffect, useCallback } from 'react'
 import { Play, RefreshCw, BarChart2, List, Settings, ChevronDown, Zap, FlaskConical, TrendingUp, TrendingDown, Square } from 'lucide-react'
 
 const PAIRS = ['BTCUSDT','ETHUSDT','SOLUSDT','BNBUSDT','XRPUSDT','ADAUSDT','DOGEUSDT']
 const TIMEFRAMES = [{label:'15m',value:'15m'},{label:'1h',value:'1h'},{label:'4h',value:'4h'},{label:'1j',value:'1d'}]
 const MODES = [
-  {id:'demo',label:'DEMO',color:'#c9a227',desc:'Données simulées · Sans API'},
-  {id:'backtest',label:'BACKTEST',color:'#00aaff',desc:'Historique réel Binance'},
-  {id:'paper',label:'PAPER LIVE',color:'#00cc66',desc:'Prix réels · Trades virtuels'},
+  {id:'demo',label:'DEMO',color:'#c9a227',desc:'DonnÃ©es simulÃ©es Â· Sans API'},
+  {id:'backtest',label:'BACKTEST',color:'#00aaff',desc:'Historique rÃ©el Binance'},
+  {id:'paper',label:'PAPER LIVE',color:'#00cc66',desc:'Prix rÃ©els Â· Trades virtuels'},
 ]
 
 function calcEMA(candles, period) {
@@ -68,7 +68,7 @@ function runStrategy(candles,config) {
   const wins=trades.filter(t=>t.win).length
   const gw=trades.filter(t=>t.win).reduce((s,t)=>s+parseFloat(t.pnl),0)
   const gl=Math.abs(trades.filter(t=>!t.win).reduce((s,t)=>s+parseFloat(t.pnl),0))
-  return {trades,equityCurve,stats:{total:trades.length,wins,losses:trades.length-wins,winrate:trades.length?((wins/trades.length)*100).toFixed(1):0,maxDD:maxDD.toFixed(1),profitFactor:gl>0?(gw/gl).toFixed(2):'∞',totalPnl:(equity-capital).toFixed(2),finalEquity:equity.toFixed(2)}}
+  return {trades,equityCurve,stats:{total:trades.length,wins,losses:trades.length-wins,winrate:trades.length?((wins/trades.length)*100).toFixed(1):0,maxDD:maxDD.toFixed(1),profitFactor:gl>0?(gw/gl).toFixed(2):'âˆž',totalPnl:(equity-capital).toFixed(2),finalEquity:equity.toFixed(2)}}
 }
 
 function EquityChart({curve,capital,color='#00cc66'}) {
@@ -128,7 +128,7 @@ export default function Backtesting() {
 
   const upd=(k,v)=>setConfig(p=>({...p,[k]:v}))
 
-  // ── AUTO BACKTEST / DEMO ──
+  // â”€â”€ AUTO BACKTEST / DEMO â”€â”€
   const runBacktest=useCallback(async()=>{
     setLoading(true); setError(null); setResult(null)
     try{
@@ -145,7 +145,7 @@ export default function Backtesting() {
     setLoading(false)
   },[mode,config])
 
-  // ── PAPER: fetch live price ──
+  // â”€â”€ PAPER: fetch live price â”€â”€
   const fetchLive=useCallback(async()=>{
     try{
       const res=await fetch(`https://api.binance.com/api/v3/klines?symbol=${config.pair}&interval=1m&limit=30`)
@@ -244,11 +244,11 @@ export default function Backtesting() {
             <Settings size={12}/> CONFIGURATION
           </div>
 
-          {/* Sub-mode toggle — ALL modes */}
+          {/* Sub-mode toggle â€” ALL modes */}
           <div style={{marginBottom:'12px'}}>
             <div style={{fontSize:'10px',color:'#5a7a5a',marginBottom:'5px'}}>MODE DE TRADING</div>
             <div style={{display:'flex',gap:'4px'}}>
-              {[['auto','🤖 AUTO'],['manual','✋ MANUEL']].map(([id,label])=>(
+              {[['auto','ðŸ¤– AUTO'],['manual','âœ‹ MANUEL']].map(([id,label])=>(
                 <button key={id} onClick={()=>setSubMode(id)}
                   style={{flex:1,background:subMode===id?'#1a2e0a':'#0a120a',border:`1px solid ${subMode===id?'#c9a227':'#1a2e1a'}`,color:subMode===id?'#c9a227':'#5a7a5a',padding:'7px 4px',borderRadius:'6px',cursor:'pointer',fontSize:'11px',fontFamily:'inherit',fontWeight:'700'}}>
                   {label}
@@ -256,7 +256,7 @@ export default function Backtesting() {
               ))}
             </div>
             <div style={{fontSize:'9px',color:'#3a5a3a',marginTop:'4px'}}>
-              {subMode==='auto'?'IA génère les signaux automatiquement':'Tu cliques BUY/SELL toi-même'}
+              {subMode==='auto'?'IA gÃ©nÃ¨re les signaux automatiquement':'Tu cliques BUY/SELL toi-mÃªme'}
             </div>
           </div>
 
@@ -317,10 +317,10 @@ export default function Backtesting() {
             ):(
               <div style={{display:'flex',flexDirection:'column',gap:'6px'}}>
                 <button onClick={()=>setPaperRunning(!paperRunning)} style={{width:'100%',background:paperRunning?'#2e0a0a':'#0a2e0a',border:`1px solid ${paperRunning?'#ff4444':'#00cc66'}`,color:paperRunning?'#ff4444':'#00cc66',padding:'9px',borderRadius:'8px',cursor:'pointer',fontSize:'12px',fontFamily:'inherit',fontWeight:'700',display:'flex',alignItems:'center',justifyContent:'center',gap:'7px'}}>
-                  {paperRunning?<><Square size={13}/> STOPPER</>:<><Zap size={13}/> DÉMARRER PAPER</>}
+                  {paperRunning?<><Square size={13}/> STOPPER</>:<><Zap size={13}/> DÃ‰MARRER PAPER</>}
                 </button>
                 <button onClick={resetPaper} style={{width:'100%',background:'#0a120a',border:'1px solid #1a2e1a',color:'#5a7a5a',padding:'7px',borderRadius:'8px',cursor:'pointer',fontSize:'11px',fontFamily:'inherit'}}>
-                  Réinitialiser
+                  RÃ©initialiser
                 </button>
               </div>
             )}
@@ -329,18 +329,18 @@ export default function Backtesting() {
 
         {/* Results */}
         <div>
-          {error&&<div style={{background:'#1a0a0a',border:'1px solid #ff4444',borderRadius:'8px',padding:'10px 14px',color:'#ff4444',fontSize:'12px',marginBottom:'10px'}}>⚠️ {error}</div>}
+          {error&&<div style={{background:'#1a0a0a',border:'1px solid #ff4444',borderRadius:'8px',padding:'10px 14px',color:'#ff4444',fontSize:'12px',marginBottom:'10px'}}>âš ï¸ {error}</div>}
 
-          {/* ─── PAPER LIVE UI ─── */}
+          {/* â”€â”€â”€ PAPER LIVE UI â”€â”€â”€ */}
           {mode==='paper'&&(
             <>
               {/* Live Price + Manual Controls */}
               <div style={{background:'#0d1a0d',border:`1px solid ${paperRunning?'#00cc66':'#1a2e1a'}`,borderRadius:'12px',padding:'16px 20px',marginBottom:'12px'}}>
                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:'12px'}}>
                   <div>
-                    <div style={{fontSize:'11px',color:'#5a7a5a',marginBottom:'4px'}}>PRIX LIVE · {config.pair}</div>
-                    <div style={{fontSize:'28px',fontWeight:'700',color:'#e0e0e0'}}>{livePrice?livePrice.toFixed(2):'—'}</div>
-                    {paperRunning&&<div style={{fontSize:'10px',color:'#00cc66',marginTop:'2px',display:'flex',alignItems:'center',gap:'4px'}}><div style={{width:'6px',height:'6px',borderRadius:'50%',background:'#00cc66'}}/> EN DIRECT · refresh 10s</div>}
+                    <div style={{fontSize:'11px',color:'#5a7a5a',marginBottom:'4px'}}>PRIX LIVE Â· {config.pair}</div>
+                    <div style={{fontSize:'28px',fontWeight:'700',color:'#e0e0e0'}}>{livePrice?livePrice.toFixed(2):'â€”'}</div>
+                    {paperRunning&&<div style={{fontSize:'10px',color:'#00cc66',marginTop:'2px',display:'flex',alignItems:'center',gap:'4px'}}><div style={{width:'6px',height:'6px',borderRadius:'50%',background:'#00cc66'}}/> EN DIRECT Â· refresh 10s</div>}
                   </div>
 
                   {/* Open trade status */}
@@ -348,11 +348,11 @@ export default function Backtesting() {
                     <div style={{background:'#0a1a0a',border:'1px solid #c9a227',borderRadius:'8px',padding:'10px 14px',fontSize:'12px'}}>
                       <div style={{color:'#c9a227',fontWeight:'700',marginBottom:'4px'}}>TRADE OUVERT</div>
                       <div style={{color:openTrade.dir==='BUY'?'#00cc66':'#ff4444'}}>{openTrade.dir} @ {openTrade.entry.toFixed(2)}</div>
-                      <div style={{color:'#5a7a5a',fontSize:'10px'}}>SL: {openTrade.sl.toFixed(2)} · TP: {openTrade.tp.toFixed(2)}</div>
+                      <div style={{color:'#5a7a5a',fontSize:'10px'}}>SL: {openTrade.sl.toFixed(2)} Â· TP: {openTrade.tp.toFixed(2)}</div>
                       {subMode==='manual'&&livePrice&&(
                         <div style={{display:'flex',gap:'6px',marginTop:'8px'}}>
-                          <button onClick={()=>closePaperTrade(livePrice,true)} style={{background:'#0a2e0a',border:'1px solid #00cc66',color:'#00cc66',padding:'5px 12px',borderRadius:'6px',cursor:'pointer',fontSize:'11px',fontFamily:'inherit',fontWeight:'700'}}>TP ✓</button>
-                          <button onClick={()=>closePaperTrade(livePrice,false)} style={{background:'#2e0a0a',border:'1px solid #ff4444',color:'#ff4444',padding:'5px 12px',borderRadius:'6px',cursor:'pointer',fontSize:'11px',fontFamily:'inherit',fontWeight:'700'}}>SL ✗</button>
+                          <button onClick={()=>closePaperTrade(livePrice,true)} style={{background:'#0a2e0a',border:'1px solid #00cc66',color:'#00cc66',padding:'5px 12px',borderRadius:'6px',cursor:'pointer',fontSize:'11px',fontFamily:'inherit',fontWeight:'700'}}>TP âœ“</button>
+                          <button onClick={()=>closePaperTrade(livePrice,false)} style={{background:'#2e0a0a',border:'1px solid #ff4444',color:'#ff4444',padding:'5px 12px',borderRadius:'6px',cursor:'pointer',fontSize:'11px',fontFamily:'inherit',fontWeight:'700'}}>SL âœ—</button>
                         </div>
                       )}
                     </div>
@@ -385,7 +385,7 @@ export default function Backtesting() {
               {/* Paper Equity Curve */}
               {paperEquity.length>1&&(
                 <div style={{background:'#0d1a0d',border:'1px solid #1a2e1a',borderRadius:'10px',padding:'12px',marginBottom:'12px',height:'160px'}}>
-                  <div style={{fontSize:'10px',color:'#5a7a5a',marginBottom:'6px',fontWeight:'700'}}>COURBE D'ÉQUITÉ PAPER</div>
+                  <div style={{fontSize:'10px',color:'#5a7a5a',marginBottom:'6px',fontWeight:'700'}}>COURBE D'Ã‰QUITÃ‰ PAPER</div>
                   <div style={{height:'120px'}}><EquityChart curve={paperEquity} capital={config.capital} color="#00cc66"/></div>
                 </div>
               )}
@@ -394,7 +394,7 @@ export default function Backtesting() {
               <div style={{background:'#0d1a0d',border:'1px solid #1a2e1a',borderRadius:'10px',overflow:'hidden',maxHeight:'260px',overflowY:'auto'}}>
                 <table style={{width:'100%',borderCollapse:'collapse',fontSize:'11px'}}>
                   <thead><tr style={{background:'#0a120a',position:'sticky',top:0}}>
-                    {['#','Heure','Dir','Entrée','Sortie','P&L','Équité','Résultat'].map(h=><th key={h} style={{padding:'8px 10px',color:'#5a7a5a',textAlign:'left',fontWeight:'700',borderBottom:'1px solid #1a2e1a'}}>{h}</th>)}
+                    {['#','Heure','Dir','EntrÃ©e','Sortie','P&L','Ã‰quitÃ©','RÃ©sultat'].map(h=><th key={h} style={{padding:'8px 10px',color:'#5a7a5a',textAlign:'left',fontWeight:'700',borderBottom:'1px solid #1a2e1a'}}>{h}</th>)}
                   </tr></thead>
                   <tbody>
                     {paperTrades.length===0&&<tr><td colSpan="8" style={{padding:'20px',textAlign:'center',color:'#3a4a3
