@@ -8,6 +8,7 @@ import TradingChart from "./pages/TradingChart";
 import Backtesting from "./pages/Backtesting";
 import FTMOChallenge from "./pages/FTMOChallenge";
 import TradingDecisionSimulator from "./pages/TradingDecisionSimulator";
+import ExecutionIA from "./pages/ExecutionIA";
 
 export default function App() {
   return (
@@ -24,9 +25,11 @@ export default function App() {
             <Route path="/chart" element={<TradingChart />} />
             <Route path="/backtest" element={<Backtesting />} />
             <Route path="/decision" element={<TradingDecisionSimulator />} />
+          <Route path="/execution" element={<ExecutionIA />} />
           </Routes>
         </main>
       </div>
     </Router>
   );
 }
+
