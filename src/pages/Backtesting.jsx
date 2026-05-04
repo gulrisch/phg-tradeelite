@@ -1,3 +1,4 @@
+import React from 'react'
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { Play, RefreshCw, BarChart2, Settings, ChevronDown, Zap, TrendingUp, TrendingDown, Square, Upload, Cpu, Webhook } from 'lucide-react'
 
@@ -6,6 +7,7 @@ const TIMEFRAMES = [{label:'15m',value:'15m'},{label:'1h',value:'1h'},{label:'4h
 const MODES = [
   {id:'demo',label:'DEMO',color:'#c9a227'},
   {id:'backtest',label:'BACKTEST',color:'#00aaff'},
+  {id:'robot',label:'WEBHOOK',color:'#ff88aa',desc:'cTrader PHG_FTMO_PRO_MAX'},
   {id:'paper',label:'PAPER LIVE',color:'#00cc66'},
   {id:'robot',label:'ROBOT',color:'#ff88aa'},
 ]
@@ -129,6 +131,134 @@ function TradeTable({trades,color}){
           ))}
         </tbody>
       </table>
+    </div>
+  )
+}
+
+
+function WebhookPanel() {
+  const [port, setPort] = React.useState(5000)
+  const [token, setToken] = React.useState('PHG_SECRET')
+  const [symbol, setSymbol] = React.useState('EURUSD')
+  const [volume, setVolume] = React.useState(0.01)
+  const [sl, setSl] = React.useState(20)
+  const [tp, setTp] = React.useState(40)
+  const [status, setStatus] = React.useState(null)
+  const [connected, setConnected] = React.useState(false)
+  const [log, setLog] = React.useState([])
+  const [sending, setSending] = React.useState(null)
+
+  React.useEffect(() => {
+    const poll = async () => {
+      try {
+        const r = await fetch('http://localhost:' + port + '/status/', {signal: AbortSignal.timeout(1500)})
+        if (!r.ok) throw new Error('HTTP ' + r.status)
+        const d = await r.json()
+        setStatus(d)
+        setConnected(true)
+      } catch(e) {
+        setConnected(false)
+        setStatus(null)
+      }
+    }
+    poll()
+    const id = setInterval(poll, 2000)
+    return () => clearInterval(id)
+  }, [port])
+
+  const send = async (type) => {
+    setSending(type)
+    const ts = new Date().toLocaleTimeString('fr-FR')
+    try {
+      const r = await fetch('http://localhost:' + port + '/trade/', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({token, type, symbol, volume: parseFloat(volume), sl: parseFloat(sl), tp: parseFloat(tp)}),
+        signal: AbortSignal.timeout(3000)
+      })
+      const d = await r.json()
+      setLog(p => [{time: ts, type: type.toUpperCase(), status: d.status === 'ok' ? 'OK' : JSON.stringify(d), ok: d.status === 'ok'}, ...p.slice(0,19)])
+    } catch(e) {
+      setLog(p => [{time: ts, type: type.toUpperCase(), status: 'ERREUR: ' + e.message, ok: false}, ...p.slice(0,19)])
+    }
+    setSending(null)
+  }
+
+  const sigColor = status?.signal?.includes('BUY READY') ? '#00cc66' : status?.signal?.includes('SELL READY') ? '#ff4444' : '#c9a227'
+
+  return (
+    <div style={{display:'flex',flexDirection:'column',gap:'12px'}}>
+      <div style={{background:'#0d1a0d',border:'1px solid ' + (connected ? '#00cc66' : '#ff4444'),borderRadius:'12px',padding:'16px'}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'12px'}}>
+          <div style={{fontSize:'12px',fontWeight:'700',color:'#ff88aa'}}>PHG_FTMO_PRO_MAX</div>
+          <div style={{display:'flex',alignItems:'center',gap:'6px'}}>
+            <div style={{width:'8px',height:'8px',borderRadius:'50%',background:connected ? '#00cc66' : '#ff4444'}}/>
+            <span style={{fontSize:'11px',color:connected ? '#00cc66' : '#ff4444',fontWeight:'700'}}>{connected ? 'CONNECTE' : 'DECONNECTE'}</span>
+          </div>
+        </div>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:'6px',marginBottom:'10px'}}>
+          {[['Port', port, setPort, 'number'],['Token', token, setToken, 'text'],['Symbol', symbol, setSymbol, 'text']].map(([label, val, setter, type]) => (
+            <div key={label}>
+              <div style={{fontSize:'9px',color:'#5a7a5a',marginBottom:'2px'}}>{label}</div>
+              <input type={type} value={val} onChange={e => setter(e.target.value)}
+                style={{width:'100%',background:'#0a120a',border:'1px solid #1a2e1a',color:'#e0e0e0',padding:'4px 7px',borderRadius:'4px',fontSize:'11px',fontFamily:'inherit',boxSizing:'border-box'}}/>
+            </div>
+          ))}
+        </div>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:'6px',marginBottom:'12px'}}>
+          {[['Volume', volume, setVolume],['SL pips', sl, setSl],['TP pips', tp, setTp]].map(([label, val, setter]) => (
+            <div key={label}>
+              <div style={{fontSize:'9px',color:'#5a7a5a',marginBottom:'2px'}}>{label}</div>
+              <input type="number" value={val} onChange={e => setter(e.target.value)}
+                style={{width:'100%',background:'#0a120a',border:'1px solid #1a2e1a',color:'#e0e0e0',padding:'4px 7px',borderRadius:'4px',fontSize:'11px',fontFamily:'inherit',boxSizing:'border-box'}}/>
+            </div>
+          ))}
+        </div>
+        {connected && status && (
+          <div style={{background:'#0a120a',border:'1px solid ' + sigColor + '30',borderRadius:'8px',padding:'10px',marginBottom:'12px'}}>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:'8px',marginBottom:'8px'}}>
+              <div style={{textAlign:'center'}}><div style={{fontSize:'9px',color:'#5a7a5a'}}>SIGNAL</div><div style={{fontSize:'12px',fontWeight:'700',color:sigColor}}>{status.signal || '--'}</div></div>
+              <div style={{textAlign:'center'}}><div style={{fontSize:'9px',color:'#5a7a5a'}}>TREND</div><div style={{fontSize:'11px',color:status.trend?.includes('BULL') ? '#00cc66' : '#ff4444'}}>{status.trend || '--'}</div></div>
+              <div style={{textAlign:'center'}}><div style={{fontSize:'9px',color:'#5a7a5a'}}>ENTRY</div><div style={{fontSize:'11px',color:'#c9a227'}}>{status.entry > 0 ? status.entry : '--'}</div></div>
+            </div>
+            {status.autoMode && <div style={{textAlign:'center',fontSize:'10px',color:'#00cc66'}}>AUTO ACTIF</div>}
+          </div>
+        )}
+        <div style={{display:'flex',gap:'6px',marginBottom:'10px'}}>
+          <button onClick={() => send('buy')} disabled={!connected || sending !== null}
+            style={{flex:1,background:'#0a2e0a',border:'2px solid #00cc66',color:'#00cc66',padding:'10px',borderRadius:'7px',cursor:'pointer',fontSize:'13px',fontFamily:'inherit',fontWeight:'700',opacity:!connected ? 0.4 : 1}}>
+            {sending === 'buy' ? '...' : 'BUY'}
+          </button>
+          <button onClick={() => send('sell')} disabled={!connected || sending !== null}
+            style={{flex:1,background:'#2e0a0a',border:'2px solid #ff4444',color:'#ff4444',padding:'10px',borderRadius:'7px',cursor:'pointer',fontSize:'13px',fontFamily:'inherit',fontWeight:'700',opacity:!connected ? 0.4 : 1}}>
+            {sending === 'sell' ? '...' : 'SELL'}
+          </button>
+          <button onClick={() => send('close')} disabled={!connected || sending !== null}
+            style={{flex:1,background:'#0a120a',border:'2px solid #555',color:'#aaa',padding:'10px',borderRadius:'7px',cursor:'pointer',fontSize:'13px',fontFamily:'inherit',fontWeight:'700',opacity:!connected ? 0.4 : 1}}>
+            CLOSE
+          </button>
+          <button onClick={() => send(status?.autoMode ? 'auto_off' : 'auto_on')} disabled={!connected || sending !== null}
+            style={{flex:1,background:status?.autoMode ? '#1a2e0a' : '#0a120a',border:'2px solid ' + (status?.autoMode ? '#c9a227' : '#333'),color:status?.autoMode ? '#c9a227' : '#555',padding:'10px',borderRadius:'7px',cursor:'pointer',fontSize:'11px',fontFamily:'inherit',fontWeight:'700',opacity:!connected ? 0.4 : 1}}>
+            AUTO
+          </button>
+        </div>
+        {log.length > 0 && (
+          <div style={{background:'#0a120a',border:'1px solid #1a2e1a',borderRadius:'6px',maxHeight:'150px',overflowY:'auto'}}>
+            {log.map((l, i) => (
+              <div key={i} style={{display:'flex',gap:'8px',padding:'5px 8px',borderBottom:'1px solid #0a120a',fontSize:'10px'}}>
+                <span style={{color:'#5a7a5a'}}>{l.time}</span>
+                <span style={{color:l.type === 'BUY' ? '#00cc66' : l.type === 'SELL' ? '#ff4444' : '#888',fontWeight:'700'}}>{l.type}</span>
+                <span style={{color:l.ok ? '#00cc66' : '#ff4444',marginLeft:'auto'}}>{l.status}</span>
+              </div>
+            ))}
+          </div>
+        )}
+        {!connected && (
+          <div style={{fontSize:'10px',color:'#5a7a5a',lineHeight:'1.6',marginTop:'8px'}}>
+            Lancer PHG_FTMO_PRO_MAX dans cTrader sur port {port}
+          </div>
+        )}
+      </div>
     </div>
   )
 }
@@ -371,6 +501,7 @@ export default function Backtesting(){
         </div>
 
         <div>
+          {mode==='robot'&&<WebhookPanel/>}
           {error&&<div style={{background:'#1a0a0a',border:'1px solid #ff4444',borderRadius:'8px',padding:'10px 14px',color:'#ff4444',fontSize:'12px',marginBottom:'10px'}}>⚠️ {error}</div>}
 
           {mode==='paper'&&(
