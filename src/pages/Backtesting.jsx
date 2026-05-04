@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { Play, RefreshCw, BarChart2, Settings, ChevronDown, Zap, TrendingUp, TrendingDown, Square, Upload, Cpu, Webhook } from 'lucide-react'
 
-const PAIRS = ['BTCUSDT','ETHUSDT','SOLUSDT','BNBUSDT','XRPUSDT','ADAUSDT','DOGEUSDT']
+const PAIRS = ['EURUSD','GBPUSD','USDJPY','USDCHF','AUDUSD','XAUUSD','XAGUSD','NAS100','US30','BTCUSD']
 const TIMEFRAMES = [{label:'15m',value:'15m'},{label:'1h',value:'1h'},{label:'4h',value:'4h'},{label:'1j',value:'1d'}]
 const MODES = [
   {id:'demo',label:'DEMO',color:'#c9a227'},
