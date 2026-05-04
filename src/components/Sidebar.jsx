@@ -1,58 +1,69 @@
-﻿import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, BookOpen, Activity, Target, TrendingUp, BarChart2 } from 'lucide-react'
+﻿import { Link, useLocation } from "react-router-dom";
+import {
+  LayoutDashboard, BookOpen, Activity, TrendingUp,
+  Trophy, BarChart2, FlaskConical, Zap
+} from "lucide-react";
 
 const nav = [
-  { path: '/', icon: LayoutDashboard, label: 'Dashboard' },
-  { path: '/journal', icon: BookOpen, label: 'Trade Journal' },
-  { path: '/signals', icon: Activity, label: 'Signal Simulator' },
-  { path: '/evolution', icon: TrendingUp, label: 'Auto Evolution' },
-  { path: '/ftmo', icon: Target, label: 'FTMO Challenge' },
-  { path: '/chart', icon: BarChart2, label: 'Trading Chart' },
-  { path: '/backtest', icon: BarChart2, label: 'Backtesting' },
-]
+  { path: "/",          icon: LayoutDashboard, label: "Tableau de bord" },
+  { path: "/journal",   icon: BookOpen,         label: "Journal commercial" },
+  { path: "/signal",    icon: Activity,         label: "Simulateur de signal" },
+  { path: "/evolution", icon: TrendingUp,        label: "Auto Evolution" },
+  { path: "/ftmo",      icon: Trophy,            label: "Défi FTMO" },
+  { path: "/chart",     icon: BarChart2,         label: "Graphique de trading" },
+  { path: "/backtest",  icon: FlaskConical,      label: "Test rétrospectif" },
+  { path: "/decision",  icon: Zap,               label: "Decision Simulator" },
+];
 
-function HorusEye() {
-  return (
-    <svg width="32" height="32" viewBox="0 0 100 100">
-      <rect width="100" height="100" fill="#0a120a" rx="8"/>
-      <g transform="translate(50,50)">
-        <path d="M-32,0 C-20,-18 -8,-24 0,-24 C8,-24 20,-18 32,0 C20,18 8,24 0,24 C-8,24 -20,18 -32,0 Z" fill="#0a120a" stroke="#c9a227" strokeWidth="2"/>
-        <circle cx="0" cy="0" r="14" fill="#1c2e0a" stroke="#c9a227" strokeWidth="1.5"/>
-        <circle cx="0" cy="0" r="8" fill="#c9a227"/>
-        <circle cx="0" cy="0" r="3" fill="#060d06"/>
-        <path d="M-24,-26 C-10,-35 10,-35 24,-26" fill="none" stroke="#c9a227" strokeWidth="2" strokeLinecap="round"/>
-        <path d="M-12,20 L-16,34 L-10,36 L-6,24" fill="none" stroke="#c9a227" strokeWidth="1.5" strokeLinecap="round"/>
-        <path d="M12,20 L14,34 L9,36" fill="none" stroke="#c9a227" strokeWidth="1.5" strokeLinecap="round"/>
-      </g>
-    </svg>
-  )
-}
+const gold = "#D4AF37";
+const dark = "#0f0f08";
+const muted = "#666655";
 
 export default function Sidebar() {
+  const location = useLocation();
+
   return (
-    <div style={{ width:'220px', minHeight:'100vh', background:'#080f08', borderRight:'1px solid #1a2e1a', display:'flex', flexDirection:'column', position:'sticky', top:0, height:'100vh' }}>
-      <div style={{ padding:'20px 16px', borderBottom:'1px solid #1a2e1a', display:'flex', alignItems:'center', gap:'10px' }}>
-        <HorusEye />
-        <div>
-          <div style={{ fontSize:'14px', fontWeight:'700', color:'#c9a227', letterSpacing:'1px' }}>PHG FTMO</div>
-          <div style={{ fontSize:'9px', color:'#7a6010', letterSpacing:'2px' }}>PRO MAX IA ELITE</div>
+    <div style={{
+      width: 200, minHeight: "100vh", background: dark,
+      borderRight: "1px solid #2a2a1a", display: "flex",
+      flexDirection: "column", padding: "20px 0",
+    }}>
+      {/* Logo */}
+      <div style={{ padding: "0 16px 24px", borderBottom: "1px solid #2a2a1a" }}>
+        <div style={{ fontSize: 14, fontWeight: 700, color: gold }}>PHG FTMO</div>
+        <div style={{ fontSize: 10, color: muted, marginTop: 2 }}>PRO MAX IA ÉLITE</div>
+      </div>
+
+      {/* Nav */}
+      <nav style={{ flex: 1, padding: "12px 8px" }}>
+        {nav.map(({ path, icon: Icon, label }) => {
+          const active = location.pathname === path;
+          return (
+            <Link key={path} to={path} style={{ textDecoration: "none" }}>
+              <div style={{
+                display: "flex", alignItems: "center", gap: 10,
+                padding: "9px 10px", borderRadius: 8, marginBottom: 2,
+                background: active ? "#1e1e10" : "transparent",
+                borderLeft: active ? `3px solid ${gold}` : "3px solid transparent",
+                color: active ? gold : muted,
+                fontSize: 13, fontWeight: active ? 600 : 400,
+                transition: "all 0.15s", cursor: "pointer",
+              }}>
+                <Icon size={15} />
+                {label}
+              </div>
+            </Link>
+          );
+        })}
+      </nav>
+
+      {/* Footer */}
+      <div style={{ padding: "12px 16px", borderTop: "1px solid #2a2a1a" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <div style={{ width: 7, height: 7, borderRadius: "50%", background: "#1D9E75" }} />
+          <span style={{ fontSize: 10, color: muted }}>v2.0 ÉLITE · EN DIRECT</span>
         </div>
       </div>
-      <nav style={{ flex:1, padding:'12px 8px', display:'flex', flexDirection:'column', gap:'2px' }}>
-        {nav.map(({ path, icon: Icon, label }) => (
-          <NavLink key={path} to={path} style={({ isActive }) => ({
-            display:'flex', alignItems:'center', gap:'10px', padding:'10px 12px', borderRadius:'8px',
-            fontSize:'13px', color: isActive ? '#c9a227' : '#7a9a7a', background: isActive ? '#1a2e0a' : 'transparent',
-            borderLeft: isActive ? '2px solid #c9a227' : '2px solid transparent', textDecoration:'none'
-          })}>
-            <Icon size={16} />{label}
-          </NavLink>
-        ))}
-      </nav>
-      <div style={{ padding:'12px 16px', borderTop:'1px solid #1a2e1a', fontSize:'11px', color:'#00cc66', display:'flex', alignItems:'center', gap:'6px' }}>
-        <div style={{ width:'6px', height:'6px', borderRadius:'50%', background:'#00cc66' }}></div>
-        v2.0 ELITE · LIVE
-      </div>
     </div>
-  )
+  );
 }
