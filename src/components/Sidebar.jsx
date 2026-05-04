@@ -1,4 +1,4 @@
-ï»¿import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import {
   LayoutDashboard, BookOpen, Activity, TrendingUp,
   Trophy, BarChart2, FlaskConical, Zap
@@ -9,9 +9,9 @@ const nav = [
   { path: "/journal",   icon: BookOpen,         label: "Journal commercial" },
   { path: "/signal",    icon: Activity,         label: "Simulateur de signal" },
   { path: "/evolution", icon: TrendingUp,        label: "Auto Evolution" },
-  { path: "/ftmo",      icon: Trophy,            label: "DÃ©fi FTMO" },
+  { path: "/ftmo",      icon: Trophy,            label: "Défi FTMO" },
   { path: "/chart",     icon: BarChart2,         label: "Graphique de trading" },
-  { path: "/backtest",  icon: FlaskConical,      label: "Test rÃ©trospectif" },
+  { path: "/backtest",  icon: FlaskConical,      label: "Test rétrospectif" },
   { path: "/decision",  icon: Zap,               label: "Decision Simulator" },
 ];
 
@@ -31,7 +31,7 @@ export default function Sidebar() {
       {/* Logo */}
       <div style={{ padding: "0 16px 24px", borderBottom: "1px solid #2a2a1a" }}>
         <div style={{ fontSize: 14, fontWeight: 700, color: gold }}>PHG FTMO</div>
-        <div style={{ fontSize: 10, color: muted, marginTop: 2 }}>PRO MAX IA Ã‰LITE</div>
+        <div style={{ fontSize: 10, color: muted, marginTop: 2 }}>PRO MAX IA ÉLITE</div>
       </div>
 
       {/* Nav */}
@@ -61,7 +61,7 @@ export default function Sidebar() {
       <div style={{ padding: "12px 16px", borderTop: "1px solid #2a2a1a" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <div style={{ width: 7, height: 7, borderRadius: "50%", background: "#1D9E75" }} />
-          <span style={{ fontSize: 10, color: muted }}>v2.0 Ã‰LITE Â· EN DIRECT</span>
+          <span style={{ fontSize: 10, color: muted }}>v2.0 ÉLITE · EN DIRECT</span>
         </div>
       </div>
     </div>
